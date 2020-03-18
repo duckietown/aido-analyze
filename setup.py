@@ -28,7 +28,7 @@ setup(
     package_dir={"": "src"},
     packages=["aido_analyze"],
     install_requires=[
-        f"aido-schemas-{line}",
+        f"aido-protocols-{line}",
     ],
     entry_points={
         "console_scripts": [
