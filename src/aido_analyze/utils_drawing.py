@@ -274,7 +274,7 @@ def read_and_draw(
         world=duckietown_env,
         ego_name=robot_main,
     )
-    if False:
+    if True:
         evaluated.update(log0.render_time)
 
     for k, v in evaluated.items():
