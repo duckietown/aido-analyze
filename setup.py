@@ -19,7 +19,7 @@ def get_version(filename: str):
 
 version = get_version(filename="src/aido_analyze/__init__.py")
 
-line = "daffy-aido4"
+line = "daffy"
 
 setup(
     name=f"aido-analyze-{line}",
