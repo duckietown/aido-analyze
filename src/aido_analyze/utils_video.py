@@ -1,8 +1,9 @@
 import sys
 
-from .utils_drawing import log_summary, read_simulator_log_cbor, read_topic2
 from duckietown_world.svg_drawing.draw_log import SimulatorLog
 from procgraph import Block, Generator, pg, register_model_spec
+
+from .utils_drawing import log_summary, read_simulator_log_cbor, read_topic2
 
 
 class CBORRead(Generator):
@@ -137,10 +138,8 @@ def make_video_ui_image(*, log_filename: str, output_video: str) -> None:
         """
     )
 
-    pg(
-        "video_aido_ui_image",
-        dict(filename=log_filename, output=output_video, topic="ui_image"),
-    )
+    params = dict(filename=log_filename, output=output_video, topic="ui_image")
+    pg("video_aido_ui_image", params)
 
 
 def aido_log_video_ui_image_main():

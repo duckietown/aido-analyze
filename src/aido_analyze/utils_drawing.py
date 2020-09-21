@@ -192,6 +192,7 @@ def read_commands(ld: LogData, robot_name: str) -> SampledSequence:
     return seq
 
 
+
 def read_simulator_log_cbor(
     ld: LogData, main_robot_name: Optional[str] = None
 ) -> SimulatorLog:
