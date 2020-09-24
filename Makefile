@@ -14,7 +14,7 @@ bump: # v2
 upload: # v3
 	aido-check-not-dirty
 	aido-check-tagged
-	aido-check-need-upload --package aido-agents-daffy make upload-do
+	aido-check-need-upload --package aido-analyze-daffy make upload-do
 
 upload-do:
 	rm -f dist/*
