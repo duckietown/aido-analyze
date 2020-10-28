@@ -10,7 +10,7 @@ from cbor2 import CBORDecodeEOF
 
 import geometry
 from aido_schemas.protocol_simulator import RobotObservations, RobotState, SetRobotCommands
-from aido_schemas.schemas import DTSimRobotInfo, Duckiebot1Observations
+from aido_schemas.schemas import DTSimRobotInfo, DB20Observations
 from duckietown_world import draw_static, DuckietownMap, SampledSequence, SE2Transform
 from duckietown_world.rules import evaluate_rules
 from duckietown_world.rules.rule import make_timeseries, RuleEvaluationResult
@@ -157,7 +157,7 @@ def read_observations(ld: LogData, robot_name: str) -> SampledSequence:
         ro = cast(RobotObservations, found)
         if ro.robot_name != robot_name:
             continue
-        do = cast(Duckiebot1Observations, ro.observations)
+        do = cast(DB20Observations, ro.observations)
 
         t = ro.t_effective
         camera = do.camera.jpg_data
