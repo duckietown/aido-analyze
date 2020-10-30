@@ -12,9 +12,9 @@ bump: # v2
 	git push
 
 upload: # v3
-	aido-check-not-dirty
-	aido-check-tagged
-	aido-check-need-upload --package aido-analyze-daffy make upload-do
+	dts build_utils check-not-dirty
+	dts build_utils check-tagged
+	dt-check-need-upload --package aido-analyze-daffy make upload-do
 
 upload-do:
 	rm -f dist/*
