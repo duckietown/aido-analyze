@@ -95,7 +95,7 @@ def make_video1(*, log_filename: str, robot_name: str, output_video: str) -> Non
     config output
     config filename
     config robot_name
-    
+
 
     |cborread filename=$filename robot_name=$robot_name| --> |jpg2rgb| -> rgb
     rgb -> |identity| -> retimed
@@ -107,16 +107,13 @@ def make_video1(*, log_filename: str, robot_name: str, output_video: str) -> Non
     )
 
     pg(
-        "video_aido",
-        dict(filename=log_filename, output=output_video, robot_name=robot_name),
+        "video_aido", dict(filename=log_filename, output=output_video, robot_name=robot_name),
     )
 
 
 def aido_log_video_main():
     make_video1(
-        log_filename=sys.argv[1],
-        output_video="out-aido-log-video.mp4",
-        robot_name=sys.argv[2],
+        log_filename=sys.argv[1], output_video="out-aido-log-video.mp4", robot_name=sys.argv[2],
     )
 
 
@@ -125,7 +122,7 @@ def make_video_ui_image(*, log_filename: str, output_video: str) -> None:
         """
     --- model video_aido_ui_image
     config output
-    config filename 
+    config filename
     config topic
 
 

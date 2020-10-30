@@ -27,9 +27,7 @@ setup(
     keywords="",
     package_dir={"": "src"},
     packages=["aido_analyze"],
-    install_requires=[
-        f"aido-protocols-{line}",
-    ],
+    install_requires=[f"aido-protocols-{line}",],
     entry_points={
         "console_scripts": [
             "aido-log-draw=aido_schemas.utils_drawing:aido_log_draw_main",

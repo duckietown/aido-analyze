@@ -79,9 +79,7 @@ def read_map_info(ld: LogData) -> DuckietownMap:
 def read_perfomance(ld: LogData) -> Dict[str, RuleEvaluationResult]:
     sb = SampledSequenceBuilder[float]()
     sb.add(0, 0)
-    sequences: Dict[str, SampledSequenceBuilder] = defaultdict(
-        lambda: SampledSequenceBuilder[float]()
-    )
+    sequences: Dict[str, SampledSequenceBuilder] = defaultdict(lambda: SampledSequenceBuilder[float]())
 
     for i, ob in enumerate(read_topic2(ld, "timing_information")):
         # ob = ipce_to_object(ob['data'], {}, {})
@@ -192,10 +190,7 @@ def read_commands(ld: LogData, robot_name: str) -> SampledSequence:
     return seq
 
 
-
-def read_simulator_log_cbor(
-    ld: LogData, main_robot_name: Optional[str] = None
-) -> SimulatorLog:
+def read_simulator_log_cbor(ld: LogData, main_robot_name: Optional[str] = None) -> SimulatorLog:
     render_time = read_perfomance(ld)
     duckietown_map = read_map_info(ld)
     robots = read_trajectories(ld)
@@ -218,9 +213,7 @@ def read_simulator_log_cbor(
         # noinspection PyTypeChecker
         duckietown_map.set_object(robot_name, robot, ground_truth=trajs.pose)
 
-    return SimulatorLog(
-        duckietown=duckietown_map, robots=robots, render_time=render_time
-    )
+    return SimulatorLog(duckietown=duckietown_map, robots=robots, render_time=render_time)
 
 
 def evaluate_stats(fn: str, robot_main: str) -> Dict[str, RuleEvaluationResult]:
@@ -230,17 +223,12 @@ def evaluate_stats(fn: str, robot_main: str) -> Dict[str, RuleEvaluationResult]:
     duckietown_env = log0.duckietown
     interval = SampledSequence.from_iterator(enumerate(log.pose.timestamps))
     evaluated = evaluate_rules(
-        poses_sequence=log.pose,
-        interval=interval,
-        world=duckietown_env,
-        ego_name=robot_main,
+        poses_sequence=log.pose, interval=interval, world=duckietown_env, ego_name=robot_main,
     )
     return evaluated
 
 
-def read_and_draw(
-    fn: str, output: str, robot_main: str
-) -> Dict[str, RuleEvaluationResult]:
+def read_and_draw(fn: str, output: str, robot_main: str) -> Dict[str, RuleEvaluationResult]:
     ld = log_summary(fn)
 
     logger.info("Reading logs...")
@@ -270,10 +258,7 @@ def read_and_draw(
     logger.info("Evaluating rules...")
     interval = SampledSequence.from_iterator(enumerate(log.pose.timestamps))
     evaluated = evaluate_rules(
-        poses_sequence=log.pose,
-        interval=interval,
-        world=duckietown_env,
-        ego_name=robot_main,
+        poses_sequence=log.pose, interval=interval, world=duckietown_env, ego_name=robot_main,
     )
     if True:
         evaluated.update(log0.render_time)
@@ -284,19 +269,13 @@ def read_and_draw(
     timeseries.update(make_timeseries(evaluated))
     logger.info("Drawing...")
     draw_static(
-        duckietown_env,
-        output,
-        images=images,
-        timeseries=timeseries,
-        main_robot_name=robot_main,
+        duckietown_env, output, images=images, timeseries=timeseries, main_robot_name=robot_main,
     )
     logger.info("...done.")
     return evaluated
 
 
-def timeseries_wheels_velocities(
-    log_commands: SampledSequence,
-) -> Dict[str, TimeseriesPlot]:
+def timeseries_wheels_velocities(log_commands: SampledSequence,) -> Dict[str, TimeseriesPlot]:
     timeseries = {}
     sequences = {}
 
@@ -314,9 +293,7 @@ def timeseries_wheels_velocities(
     return timeseries
 
 
-def timeseries_robot_velocity(
-    log_velocity: SampledSequence,
-) -> Dict[str, TimeseriesPlot]:
+def timeseries_robot_velocity(log_velocity: SampledSequence,) -> Dict[str, TimeseriesPlot]:
     timeseries = {}
     sequences = {}
 
@@ -331,9 +308,7 @@ def timeseries_robot_velocity(
         return omega
 
     sequences["linear_speed"] = log_velocity.transform_values(lambda _: speed(_), float)
-    sequences["angular_velocity"] = log_velocity.transform_values(
-        lambda _: omega(_), float
-    )
+    sequences["angular_velocity"] = log_velocity.transform_values(lambda _: omega(_), float)
     # logger.info("linear speed: %s" % sequences["linear_speed"])
     # logger.info("angular velocity: %s" % sequences["angular_velocity"])
     timeseries["velocity"] = TimeseriesPlot("Velocities", "velocities", sequences)
