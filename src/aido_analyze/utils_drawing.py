@@ -4,13 +4,16 @@ from dataclasses import dataclass
 from typing import cast, Dict, Iterator, List, Optional
 
 import cbor2
+import geometry
+import geometry as g
 import numpy as np
 import yaml
 from cbor2 import CBORDecodeEOF
+from zuper_ipce import IEDO, object_from_ipce
+from zuper_ipce.json2cbor import tag_hook
 
-import geometry
 from aido_schemas.protocol_simulator import RobotObservations, RobotState, SetRobotCommands
-from aido_schemas.schemas import DTSimRobotInfo, DB20Observations
+from aido_schemas.schemas import DB20Observations, DTSimRobotInfo
 from duckietown_world import draw_static, DuckietownMap, SampledSequence, SE2Transform
 from duckietown_world.rules import evaluate_rules
 from duckietown_world.rules.rule import make_timeseries, RuleEvaluationResult
@@ -18,10 +21,7 @@ from duckietown_world.seqs.tsequence import SampledSequenceBuilder
 from duckietown_world.svg_drawing.draw_log import RobotTrajectories, SimulatorLog
 from duckietown_world.svg_drawing.misc import TimeseriesPlot
 from duckietown_world.world_duckietown import construct_map, DB18
-from duckietown_world.world_duckietown.types import SE2v
 from duckietown_world.world_duckietown.utils import get_velocities_from_sequence
-from zuper_ipce import IEDO, object_from_ipce
-from zuper_ipce.json2cbor import tag_hook
 from . import logger
 
 
@@ -108,7 +108,7 @@ def read_trajectories(ld: LogData) -> Dict[str, RobotTrajectories]:
     robot2trajs = {}
     for robot_name in robot_names:
         ssb_pose = SampledSequenceBuilder[SE2Transform]()
-        ssb_pose_SE2 = SampledSequenceBuilder[SE2v]()
+        ssb_pose_SE2 = SampledSequenceBuilder[g.SE2value]()
         # ssb_actions = SampledSequenceBuilder[object]()
         # ssb_wheels_velocities = SampledSequenceBuilder[object]()
         # ssb_velocities = SampledSequenceBuilder[Any]()
