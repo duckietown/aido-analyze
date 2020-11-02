@@ -21,3 +21,12 @@ upload-do:
 	rm -rf src/*.egg-info
 	python3 setup.py sdist
 	twine upload --skip-existing --verbose dist/*
+
+log=ETHZ_autolab_technical_track-sc0-0/log.gs2.cbor
+test:
+	aido-log-video-ui-image  --gslog $(log) --out out/ui-image.mp4
+	aido-log-video  --gslog $(log) --robot ego --out out/test1.mp4
+
+
+test-draw:
+	aido-log-draw --gslog $(log) --robot ego --outdir out/test1

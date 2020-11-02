@@ -1,7 +1,8 @@
+import argparse
 import sys
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import cast, Dict, Iterator, List, Optional
+from typing import cast, Dict, Iterator, List, Optional, Type, TypeVar
 
 import cbor2
 import geometry
@@ -9,10 +10,19 @@ import geometry as g
 import numpy as np
 import yaml
 from cbor2 import CBORDecodeEOF
+from zuper_commons.types import ZException
 from zuper_ipce import IEDO, object_from_ipce
 from zuper_ipce.json2cbor import tag_hook
 
-from aido_schemas.protocol_simulator import RobotObservations, RobotState, SetRobotCommands
+import duckietown_world as dw
+from aido_schemas.protocol_simulator import (
+    RobotName,
+    RobotObservations,
+    RobotState,
+    SetRobotCommands,
+    SpawnDuckie,
+    SpawnRobot,
+)
 from aido_schemas.schemas import DB20Observations, DTSimRobotInfo
 from duckietown_world import draw_static, DuckietownMap, SampledSequence, SE2Transform
 from duckietown_world.rules import evaluate_rules
@@ -20,7 +30,7 @@ from duckietown_world.rules.rule import make_timeseries, RuleEvaluationResult
 from duckietown_world.seqs.tsequence import SampledSequenceBuilder
 from duckietown_world.svg_drawing.draw_log import RobotTrajectories, SimulatorLog
 from duckietown_world.svg_drawing.misc import TimeseriesPlot
-from duckietown_world.world_duckietown import construct_map, DB18
+from duckietown_world.world_duckietown import construct_map, DB18, Duckie
 from duckietown_world.world_duckietown.utils import get_velocities_from_sequence
 from . import logger
 
@@ -30,8 +40,9 @@ class LogData:
     objects: List[dict]
 
 
-def log_summary(filename: str) -> LogData:
+def log_summary(filename: str, measure_size: bool = True) -> LogData:
     objects = []
+
     with open(filename, "rb") as f:
         counts = defaultdict(lambda: 0)
         sizes = defaultdict(lambda: 0)
@@ -44,8 +55,10 @@ def log_summary(filename: str) -> LogData:
 
             # for ob in read_cbor_or_json_objects(f):
             topic = ob["topic"]
-            size_ob = 0
-            # size_ob = len(cbor2.dumps(ob))
+            if measure_size:
+                size_ob = len(cbor2.dumps(ob))
+            else:
+                size_ob = 0
             counts[topic] += 1
             sizes[topic] += size_ob
             objects.append(ob)
@@ -54,7 +67,7 @@ def log_summary(filename: str) -> LogData:
     for topic in ordered:
         count = counts[topic]
         size_mb = sizes[topic] / (1024 * 1024.0)
-        logger.info("topic %25s: %4s messages  %.2f MB" % (topic, count, size_mb))
+        logger.info(f"topic {topic:>25}: {count:>4} messages  {size_mb:.2f} MB")
     return LogData(objects)
 
 
@@ -62,6 +75,17 @@ def read_topic2(ld: LogData, topic: str) -> Iterator[dict]:
     for ob in ld.objects:
         if ob["topic"] == topic:
             yield ob
+
+
+X = TypeVar("X")
+
+
+def read_topic_as(ld: LogData, topic: str, K: Type[X]) -> Iterator[X]:
+    for ob in ld.objects:
+        if ob["topic"] == topic:
+            data = ob["data"]
+            inter = object_from_ipce(data, K, iedo=iedo)
+            yield inter
 
 
 def read_map_info(ld: LogData) -> DuckietownMap:
@@ -88,6 +112,7 @@ def read_perfomance(ld: LogData) -> Dict[str, RuleEvaluationResult]:
         for p, f in phases.items():
             sequences[p].add(t=i, v=f)
 
+    # noinspection PyTypeChecker XXX
     evr = RuleEvaluationResult(None)
     for p, sb in sequences.items():
         seq = sb.as_sequence()
@@ -97,13 +122,13 @@ def read_perfomance(ld: LogData) -> Dict[str, RuleEvaluationResult]:
     return {"performance": evr}
 
 
-def read_trajectories(ld: LogData) -> Dict[str, RobotTrajectories]:
+def read_trajectories(ld: LogData) -> Dict[RobotName, RobotTrajectories]:
     rs = list(read_topic2(ld, "robot_state"))
     if not rs:
         msg = "Could not find robot_state"
         raise Exception(msg)
     robot_names = set([r["data"]["robot_name"] for r in rs])
-    logger.info(f"robot_names: {robot_names}")
+    logger.info(robot_names=robot_names)
 
     robot2trajs = {}
     for robot_name in robot_names:
@@ -191,23 +216,29 @@ def read_commands(ld: LogData, robot_name: str) -> SampledSequence:
 
 
 def read_simulator_log_cbor(ld: LogData, main_robot_name: Optional[str] = None) -> SimulatorLog:
+    robot_spawn: Dict[str, SpawnRobot] = {
+        v.robot_name: v for v in read_topic_as(ld, "spawn_robot", SpawnRobot)
+    }
+    duckie_spawn: Dict[str, SpawnDuckie] = {x.name: x for x in read_topic_as(ld, "spawn_duckie", SpawnDuckie)}
+    logger.info(spawn=robot_spawn, duckie_spawn=duckie_spawn)
+
     render_time = read_perfomance(ld)
     duckietown_map = read_map_info(ld)
     robots = read_trajectories(ld)
     # logger.info(f'robots: {len(robots)}')
 
+    for duckie_name, ds in duckie_spawn.items():
+        color = ds.color
+        pose = ds.pose
+        duckie = Duckie(color=color)
+
+        pose2 = SE2Transform.from_SE2(pose)
+
+        gt = dw.Constant[dw.SE2Transform](pose2)
+        duckietown_map.set_object(duckie_name, duckie, ground_truth=gt)
+
     for robot_name, trajs in robots.items():
-        # logger.info(f'robots: {robot_name} trajs: {trajs.pose.get_sampling_points()}')
-        if robot_name == main_robot_name:
-            color = "red"
-        elif "ego" in robot_name:
-            color = "pink"
-        elif "parked" in robot_name:
-            color = "blue"
-        elif "npc" in robot_name:
-            color = "yellow"
-        else:
-            color = "grey"
+        color = robot_spawn[robot_name].color
 
         robot = DB18(color=color)
         # noinspection PyTypeChecker
@@ -238,7 +269,7 @@ def read_and_draw(fn: str, output: str, robot_main: str) -> Dict[str, RuleEvalua
     # for robot_main in pc_names:
     if not robot_main in log0.robots:
         msg = f"Cannot find robot {robot_main!r}"
-        raise Exception(msg)
+        raise ZException(msg, known=sorted(log0.robots))
 
     log = log0.robots[robot_main]
 
@@ -322,3 +353,14 @@ def aido_log_draw_main():
 if __name__ == "__main__":
     # in case called
     read_and_draw(sys.argv[2], "test", robot_main=sys.argv[3])
+
+
+def aido_log_draw_main(args=None):
+    parser = argparse.ArgumentParser(description="")
+
+    parser.add_argument("--gslog", required=True)
+    parser.add_argument("--robot", required=True)
+    parser.add_argument("--outdir", help="output directory location", required=True)
+
+    args = parser.parse_args(args)
+    read_and_draw(args.gslog, args.outdir, robot_main=args.robot)

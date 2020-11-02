@@ -1,3 +1,4 @@
+import argparse
 import sys
 
 from duckietown_world.svg_drawing.draw_log import SimulatorLog
@@ -111,10 +112,22 @@ def make_video1(*, log_filename: str, robot_name: str, output_video: str) -> Non
     )
 
 
-def aido_log_video_main():
+def aido_log_video_main(args=None):
+    parser = argparse.ArgumentParser(description="")
+
+    parser.add_argument("--gslog", required=True)
+    parser.add_argument("--out", help="filename output", required=True)
+    parser.add_argument("--robot", required=True)
+
+    args = parser.parse_args(args)
+
     make_video1(
-        log_filename=sys.argv[1], output_video="out-aido-log-video.mp4", robot_name=sys.argv[2],
+        log_filename=args.gslog, output_video=args.out, robot_name=args.robot,
     )
+
+    # make_video1(
+    #     log_filename=sys.argv[1], output_video="out-aido-log-video.mp4", robot_name=sys.argv[2],
+    # )
 
 
 def make_video_ui_image(*, log_filename: str, output_video: str) -> None:
@@ -139,9 +152,16 @@ def make_video_ui_image(*, log_filename: str, output_video: str) -> None:
     pg("video_aido_ui_image", params)
 
 
-def aido_log_video_ui_image_main():
+def aido_log_video_ui_image_main(args=None):
+    parser = argparse.ArgumentParser(description="")
+
+    parser.add_argument("--gslog", required=True)
+    parser.add_argument("--out", help="filename output", required=True)
+
+    args = parser.parse_args(args)
+
     make_video_ui_image(
-        log_filename=sys.argv[1], output_video="out-aido-log-video_ui_image.mp4",
+        log_filename=args.gslog, output_video=args.out,
     )
 
 
