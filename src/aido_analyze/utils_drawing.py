@@ -67,7 +67,7 @@ def log_summary(filename: str, measure_size: bool = True) -> LogData:
     for topic in ordered:
         count = counts[topic]
         size_mb = sizes[topic] / (1024 * 1024.0)
-        logger.info(f"topic {topic:>25}: {count:>4} messages  {size_mb:.2f} MB")
+        logger.debug(f"topic {topic:>25}: {count:>4} messages  {size_mb:.2f} MB")
     return LogData(objects)
 
 
@@ -220,7 +220,7 @@ def read_simulator_log_cbor(ld: LogData, main_robot_name: Optional[str] = None) 
         v.robot_name: v for v in read_topic_as(ld, "spawn_robot", SpawnRobot)
     }
     duckie_spawn: Dict[str, SpawnDuckie] = {x.name: x for x in read_topic_as(ld, "spawn_duckie", SpawnDuckie)}
-    logger.info(spawn=robot_spawn, duckie_spawn=duckie_spawn)
+    # logger.info(spawn=robot_spawn, duckie_spawn=duckie_spawn)
 
     render_time = read_perfomance(ld)
     duckietown_map = read_map_info(ld)
@@ -282,11 +282,11 @@ def read_and_draw(fn: str, output: str, robot_main: str) -> Dict[str, RuleEvalua
 
     # logger.info("Computing timeseries_actions...")
     # timeseries.update(timeseries_actions(log))
-    logger.info("Computing timeseries_wheels_velocities...")
+    logger.debug("Computing timeseries_wheels_velocities...")
     timeseries.update(timeseries_wheels_velocities(log.commands))
-    logger.info("Computing timeseries_robot_velocity...")
+    logger.debug("Computing timeseries_robot_velocity...")
     timeseries.update(timeseries_robot_velocity(log.velocity))
-    logger.info("Evaluating rules...")
+    logger.debug("Evaluating rules...")
     interval = SampledSequence.from_iterator(enumerate(log.pose.timestamps))
     evaluated = evaluate_rules(
         poses_sequence=log.pose, interval=interval, world=duckietown_env, ego_name=robot_main,
@@ -296,7 +296,7 @@ def read_and_draw(fn: str, output: str, robot_main: str) -> Dict[str, RuleEvalua
 
     for k, v in evaluated.items():
         for kk, vv in v.metrics.items():
-            logger.info("%20s %20s %s" % (k, kk, vv))
+            logger.debug("%20s %20s %s" % (k, kk, vv))
     timeseries.update(make_timeseries(evaluated))
     logger.info("Drawing...")
     draw_static(
