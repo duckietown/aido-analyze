@@ -112,17 +112,49 @@ def make_video1(*, log_filename: str, robot_name: str, output_video: str) -> Non
     )
 
 
+def make_video2(*, log_filename: str, robot_name: str, output_video: str, banner_image: str) -> None:
+    register_model_spec(
+        """
+    --- model video_aido
+    config output
+    config filename
+    config robot_name
+    config banner_image
+
+    |static_image file=$banner_image| -> banner
+
+
+    |cborread filename=$filename robot_name=$robot_name| --> |jpg2rgb| -> rgb
+    # rgb -> |identity| -> retimed
+    # rgb --> |rewrite_timestamps interval=$factor| -> retimed
+    # retimed --> |info|
+
+    # rgb, banner -> |async| -> banner1, rgb1
+    rgb, banner  -> |async| -> rgb1, banner1
+    banner1, rgb1 -> |grid cols=1| -> result
+    result -> |mencoder quiet=1 file=$output timestamps=0|
+
+        """
+    )
+
+    pg(
+        "video_aido",
+        dict(filename=log_filename, output=output_video, robot_name=robot_name, banner_image=banner_image),
+    )
+
+
 def aido_log_video_main(args=None):
     parser = argparse.ArgumentParser(description="")
 
     parser.add_argument("--gslog", required=True)
     parser.add_argument("--out", help="filename output", required=True)
     parser.add_argument("--robot", required=True)
+    parser.add_argument("--banner", required=True)
 
     args = parser.parse_args(args)
 
     make_video1(
-        log_filename=args.gslog, output_video=args.out, robot_name=args.robot,
+        log_filename=args.gslog, output_video=args.out, robot_name=args.robot, banner_image=args.banner
     )
 
     # make_video1(

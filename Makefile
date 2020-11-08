@@ -23,10 +23,15 @@ upload-do:
 	twine upload --skip-existing --verbose dist/*
 
 log=ETHZ_autolab_technical_track-sc0-0/log.gs2.cbor
-test:
-	aido-log-video-ui-image  --gslog $(log) --out out/ui-image.mp4
-	aido-log-video  --gslog $(log) --robot ego --out out/test1.mp4
+banner=banner1.png
 
+test: test-ui test-ego test-draw
+
+test-ui:
+	aido-log-video-ui-image  --gslog $(log) --out out/ui-image.mp4
+
+test-ego:
+	aido-log-video  --gslog $(log) --robot ego --out out/test1.mp4 --banner $(banner)
 
 test-draw:
 	aido-log-draw --gslog $(log) --robot ego --outdir out/test1
