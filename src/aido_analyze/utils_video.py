@@ -1,9 +1,8 @@
 import argparse
-import sys
 
-from duckietown_world.svg_drawing.draw_log import SimulatorLog
 from procgraph import Block, Generator, pg, register_model_spec
 
+from duckietown_world.svg_drawing.draw_log import SimulatorLog
 from .utils_drawing import log_summary, read_simulator_log_cbor, read_topic2
 
 
@@ -112,7 +111,9 @@ def make_video1(*, log_filename: str, robot_name: str, output_video: str) -> Non
     )
 
 
-def make_video2(*, log_filename: str, robot_name: str, output_video: str, banner_image: str) -> None:
+def make_video2(
+    *, log_filename: str, robot_name: str, output_video: str, banner_image: str, banner_image_bottom: str
+) -> None:
     register_model_spec(
         """
     --- model video_aido
@@ -120,8 +121,10 @@ def make_video2(*, log_filename: str, robot_name: str, output_video: str, banner
     config filename
     config robot_name
     config banner_image
+    config banner_image_bottom
 
     |static_image file=$banner_image| -> banner
+    |static_image file=$banner_image_bottom| -> banner_bottom
 
 
     |cborread filename=$filename robot_name=$robot_name| --> |jpg2rgb| -> rgb
@@ -130,17 +133,20 @@ def make_video2(*, log_filename: str, robot_name: str, output_video: str, banner
     # retimed --> |info|
 
     # rgb, banner -> |async| -> banner1, rgb1
-    rgb, banner  -> |async| -> rgb1, banner1
-    banner1, rgb1 -> |grid cols=1| -> result
+    rgb, banner, banner_bottom  -> |async| -> rgb1, banner1, banner_bottom1
+    banner1, rgb1, banner_bottom1 -> |grid cols=1| -> result
     result -> |mencoder quiet=1 file=$output timestamps=0|
 
         """
     )
-
-    pg(
-        "video_aido",
-        dict(filename=log_filename, output=output_video, robot_name=robot_name, banner_image=banner_image),
+    params = dict(
+        filename=log_filename,
+        output=output_video,
+        robot_name=robot_name,
+        banner_image=banner_image,
+        banner_image_bottom=banner_image_bottom,
     )
+    pg("video_aido", params)
 
 
 def aido_log_video_main(args=None):
@@ -149,12 +155,18 @@ def aido_log_video_main(args=None):
     parser.add_argument("--gslog", required=True)
     parser.add_argument("--out", help="filename output", required=True)
     parser.add_argument("--robot", required=True)
+
     parser.add_argument("--banner", required=True)
+    parser.add_argument("--banner-bottom", required=True)
 
     args = parser.parse_args(args)
 
-    make_video1(
-        log_filename=args.gslog, output_video=args.out, robot_name=args.robot, banner_image=args.banner
+    make_video2(
+        log_filename=args.gslog,
+        output_video=args.out,
+        robot_name=args.robot,
+        banner_image=args.banner,
+        banner_image_bottom=args.banner_bottom,
     )
 
     # make_video1(
