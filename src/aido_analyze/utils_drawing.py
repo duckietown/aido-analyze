@@ -134,9 +134,6 @@ def read_trajectories(ld: LogData) -> Dict[RobotName, RobotTrajectories]:
     for robot_name in robot_names:
         ssb_pose = SampledSequenceBuilder[SE2Transform]()
         ssb_pose_SE2 = SampledSequenceBuilder[g.SE2value]()
-        # ssb_actions = SampledSequenceBuilder[object]()
-        # ssb_wheels_velocities = SampledSequenceBuilder[object]()
-        # ssb_velocities = SampledSequenceBuilder[Any]()
         for r in rs:
             found = object_from_ipce(r["data"], iedo=iedo)
             robot_state = cast(RobotState, found)
@@ -144,16 +141,10 @@ def read_trajectories(ld: LogData) -> Dict[RobotName, RobotTrajectories]:
                 continue
             state = cast(DTSimRobotInfo, robot_state.state)
             pose = state.pose
-            # velocity = robot_state.state.velocity
-            # last_action = state.last_action
-            # wheels_velocities = state.wheels_velocities
 
             t = robot_state.t_effective
             ssb_pose_SE2.add(t, pose)
             ssb_pose.add(t, SE2Transform.from_SE2(pose))
-            # ssb_actions.add(t, last_action)
-            # ssb_wheels_velocities.add(t, wheels_velocities)
-            # ssb_velocities.add(t, velocity)
 
         seq_velocities = get_velocities_from_sequence(ssb_pose_SE2)
         observations = read_observations(ld, robot_name)
@@ -161,8 +152,6 @@ def read_trajectories(ld: LogData) -> Dict[RobotName, RobotTrajectories]:
 
         robot2trajs[robot_name] = RobotTrajectories(
             pose=ssb_pose.as_sequence(),
-            # ssb_actions.as_sequence(),
-            # ssb_wheels_velocities.as_sequence(),
             velocity=seq_velocities,
             observations=observations,
             commands=commands,
@@ -324,26 +313,7 @@ def timeseries_wheels_velocities(log_commands: SampledSequence,) -> Dict[str, Ti
     return timeseries
 
 
-def timeseries_robot_velocity(log_velocity: SampledSequence,) -> Dict[str, TimeseriesPlot]:
-    timeseries = {}
-    sequences = {}
-
-    # logger.info(log_velocity)
-
-    def speed(x) -> float:
-        l, omega = geometry.linear_angular_from_se2(x)
-        return l[0]
-
-    def omega(x) -> float:
-        l, omega = geometry.linear_angular_from_se2(x)
-        return omega
-
-    sequences["linear_speed"] = log_velocity.transform_values(lambda _: speed(_), float)
-    sequences["angular_velocity"] = log_velocity.transform_values(lambda _: omega(_), float)
-    # logger.info("linear speed: %s" % sequences["linear_speed"])
-    # logger.info("angular velocity: %s" % sequences["angular_velocity"])
-    timeseries["velocity"] = TimeseriesPlot("Velocities", "velocities", sequences)
-    return timeseries
+from geometry import se2value
 
 
 def aido_log_draw_main():
