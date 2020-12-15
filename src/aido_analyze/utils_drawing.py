@@ -108,7 +108,7 @@ def read_perfomance(ld: LogData) -> Dict[str, RuleEvaluationResult]:
     for i, ob in enumerate(read_topic2(ld, "timing_information")):
         # ob = ipce_to_object(ob['data'], {}, {})
         phases = ob["data"]["phases"]
-        phases.pop("$schema")
+        phases.pop("$schema", None)
         for p, f in phases.items():
             sequences[p].add(t=i, v=f)
 
