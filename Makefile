@@ -31,7 +31,7 @@ test-ui:
 	aido-log-video-ui-image  --gslog $(log) --out out/ui-image.mp4
 
 test-ego:
-	aido-log-video  --gslog $(log) --robot ego --out out/test1.mp4 --banner $(banner)
+	aido-log-video --gslog $(log) --robot ego --out out/test1.mp4 --banner $(banner) --banner-bottom $(banner)
 
 test-draw:
 	aido-log-draw --gslog $(log) --robot ego --outdir out/test1

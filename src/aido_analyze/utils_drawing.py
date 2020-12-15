@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from typing import cast, Dict, Iterator, List, Optional, Type, TypeVar
 
 import cbor2
-import geometry
 import geometry as g
 import numpy as np
 import yaml
@@ -31,7 +30,7 @@ from duckietown_world.seqs.tsequence import SampledSequenceBuilder
 from duckietown_world.svg_drawing.draw_log import RobotTrajectories, SimulatorLog
 from duckietown_world.svg_drawing.misc import TimeseriesPlot
 from duckietown_world.world_duckietown import construct_map, DB18, Duckie
-from duckietown_world.world_duckietown.utils import get_velocities_from_sequence
+from duckietown_world.world_duckietown.utils import get_velocities_from_sequence, timeseries_robot_velocity
 from . import logger
 
 
@@ -145,8 +144,8 @@ def read_trajectories(ld: LogData) -> Dict[RobotName, RobotTrajectories]:
             t = robot_state.t_effective
             ssb_pose_SE2.add(t, pose)
             ssb_pose.add(t, SE2Transform.from_SE2(pose))
-
-        seq_velocities = get_velocities_from_sequence(ssb_pose_SE2)
+        ss_pose_SE2 = ssb_pose_SE2.as_sequence()
+        seq_velocities = get_velocities_from_sequence(ss_pose_SE2)
         observations = read_observations(ld, robot_name)
         commands = read_commands(ld, robot_name)
 
@@ -311,9 +310,6 @@ def timeseries_wheels_velocities(log_commands: SampledSequence,) -> Dict[str, Ti
         "PWM commands", "The PWM commands sent to the wheels", sequences
     )
     return timeseries
-
-
-from geometry import se2value
 
 
 def aido_log_draw_main():
