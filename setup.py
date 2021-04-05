@@ -27,7 +27,13 @@ setup(
     keywords="",
     package_dir={"": "src"},
     packages=["aido_analyze"],
-    install_requires=[f"aido-protocols-{line}",],
+    install_requires=[
+        f"aido-protocols-{line}",
+        "zuper-ipce-z6",
+        "zuper-commons-z6",
+        "procgraph-z6",
+        f"duckietown-world-{line}",
+    ],
     entry_points={
         "console_scripts": [
             "aido-log-draw=aido_analyze.utils_drawing:aido_log_draw_main",
