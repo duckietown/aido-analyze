@@ -7,8 +7,7 @@ from .utils_drawing import log_summary, read_simulator_log_cbor, read_topic2
 
 
 class CBORRead(Generator):
-    """
-    """
+    """"""
 
     Block.alias("cborread")
     Block.output("image")
@@ -50,8 +49,7 @@ class CBORRead(Generator):
 
 
 class CBORReadTopic(Generator):
-    """
-    """
+    """"""
 
     Block.alias("cborread_topic")
     Block.output("image")
@@ -107,7 +105,8 @@ def make_video1(*, log_filename: str, robot_name: str, output_video: str) -> Non
     )
 
     pg(
-        "video_aido", dict(filename=log_filename, output=output_video, robot_name=robot_name),
+        "video_aido",
+        dict(filename=log_filename, output=output_video, robot_name=robot_name),
     )
 
 
@@ -205,7 +204,8 @@ def aido_log_video_ui_image_main(args=None):
     args = parser.parse_args(args)
 
     make_video_ui_image(
-        log_filename=args.gslog, output_video=args.out,
+        log_filename=args.gslog,
+        output_video=args.out,
     )
 
 

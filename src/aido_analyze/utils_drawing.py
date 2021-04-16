@@ -242,7 +242,10 @@ def evaluate_stats(fn: str, robot_main: str) -> Dict[str, RuleEvaluationResult]:
     duckietown_env = log0.duckietown
     interval = SampledSequence.from_iterator(enumerate(log.pose.timestamps))
     evaluated = evaluate_rules(
-        poses_sequence=log.pose, interval=interval, world=duckietown_env, ego_name=robot_main,
+        poses_sequence=log.pose,
+        interval=interval,
+        world=duckietown_env,
+        ego_name=robot_main,
     )
     return evaluated
 
@@ -277,7 +280,10 @@ def read_and_draw(fn: str, output: str, robot_main: str) -> Dict[str, RuleEvalua
     logger.debug("Evaluating rules...")
     interval = SampledSequence.from_iterator(enumerate(log.pose.timestamps))
     evaluated = evaluate_rules(
-        poses_sequence=log.pose, interval=interval, world=duckietown_env, ego_name=robot_main,
+        poses_sequence=log.pose,
+        interval=interval,
+        world=duckietown_env,
+        ego_name=robot_main,
     )
     if True:
         evaluated.update(log0.render_time)
@@ -288,13 +294,19 @@ def read_and_draw(fn: str, output: str, robot_main: str) -> Dict[str, RuleEvalua
     timeseries.update(make_timeseries(evaluated))
     logger.info("Drawing...")
     draw_static(
-        duckietown_env, output, images=images, timeseries=timeseries, main_robot_name=robot_main,
+        duckietown_env,
+        output,
+        images=images,
+        timeseries=timeseries,
+        main_robot_name=robot_main,
     )
     logger.info("...done.")
     return evaluated
 
 
-def timeseries_wheels_velocities(log_commands: SampledSequence,) -> Dict[str, TimeseriesPlot]:
+def timeseries_wheels_velocities(
+    log_commands: SampledSequence,
+) -> Dict[str, TimeseriesPlot]:
     timeseries = {}
     sequences = {}
 
