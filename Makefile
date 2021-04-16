@@ -6,6 +6,8 @@ bump-upload:
 	$(MAKE) bump
 	$(MAKE) upload
 
+docs:
+
 bump: # v2
 	bumpversion patch
 	git push --tags
