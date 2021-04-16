@@ -26,7 +26,7 @@ setup(
     version=version,
     keywords="",
     package_dir={"": "src"},
-    packages=["aido_analyze"],
+    packages=["aido_analyze", "aido_analyze_tests"],
     install_requires=[
         f"aido-protocols-{line}",
         "zuper-ipce-z6",
