@@ -9,6 +9,7 @@ import geometry as g
 import numpy as np
 import yaml
 from cbor2 import CBORDecodeEOF
+from geometry import SE2value
 from zuper_commons.types import ZException
 from zuper_ipce import IEDO, object_from_ipce
 from zuper_ipce.json2cbor import tag_hook
@@ -30,7 +31,8 @@ from duckietown_world.seqs.tsequence import SampledSequenceBuilder
 from duckietown_world.svg_drawing.draw_log import RobotTrajectories, SimulatorLog
 from duckietown_world.svg_drawing.misc import TimeseriesPlot
 from duckietown_world.world_duckietown import construct_map, DB18, Duckie
-from duckietown_world.world_duckietown.utils import get_velocities_from_sequence, timeseries_robot_velocity
+from duckietown_world.world_duckietown.utils import (get_velocities_from_sequence, pose_from_friendly,
+                                                     timeseries_robot_velocity)
 from . import logger
 
 
@@ -217,7 +219,7 @@ def read_simulator_log_cbor(ld: LogData, main_robot_name: Optional[str] = None) 
 
     for duckie_name, ds in duckie_spawn.items():
         color = ds.color
-        pose = ds.pose
+        pose: SE2value = pose_from_friendly(ds.pose)
         duckie = Duckie(color=color)
 
         pose2 = SE2Transform.from_SE2(pose)
