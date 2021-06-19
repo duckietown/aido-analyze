@@ -31,6 +31,7 @@ setup(
         f"aido-protocols-{line}",
         "zuper-ipce-z6",
         "zuper-commons-z6",
+        "progressbar",
         "procgraph-z6",
         f"duckietown-world-{line}",
     ],
