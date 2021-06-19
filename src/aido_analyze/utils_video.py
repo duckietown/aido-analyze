@@ -3,7 +3,7 @@ import argparse
 from procgraph import Block, Generator, pg, register_model_spec
 
 from duckietown_world.svg_drawing.draw_log import SimulatorLog
-from .utils_drawing import log_summary, read_simulator_log_cbor, read_topic2
+from .utils_drawing import LogSupport, read_simulator_log_cbor
 
 
 class CBORRead(Generator):
@@ -18,7 +18,7 @@ class CBORRead(Generator):
     def init(self):
         fn = self.get_config("filename")
         robot_name = self.get_config("robot_name")
-        self.ld = log_summary(fn)
+        self.ld = LogSupport(fn)
         self.log: SimulatorLog = read_simulator_log_cbor(self.ld)
         self.i = 0
         if robot_name not in self.log.robots:
@@ -27,6 +27,9 @@ class CBORRead(Generator):
 
         log = self.log.robots[robot_name]
         self.n = len(log.observations)
+        if self.n == 0:
+            msg = f"Found empty video for robot {robot_name!r} at {fn}"
+            raise Exception(msg)
         self.robot_log = log
 
     def next_data_status(self):
@@ -60,8 +63,8 @@ class CBORReadTopic(Generator):
     def init(self):
         fn = self.get_config("filename")
         topic = self.get_config("topic")
-        self.ld = log_summary(fn)
-        self.topics = list(read_topic2(self.ld, topic))
+        self.ld = LogSupport(fn)
+        self.topics = list(self.ld.get_topic(topic))  # XXX too big
         # print(self.topics)
         self.i = 0
         self.n = len(self.topics)

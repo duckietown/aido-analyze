@@ -2,7 +2,7 @@ import argparse
 import sys
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import cast, Dict, Iterator, List, Optional, Type, TypeVar
+from typing import cast, Dict, Iterator, List, Optional, Set, Type, TypeVar
 
 import cbor2
 import geometry as g
@@ -10,6 +10,7 @@ import numpy as np
 import yaml
 from cbor2 import CBORDecodeEOF
 from geometry import SE2value
+from progressbar import ProgressBar
 from zuper_commons.types import ZException
 from zuper_ipce import IEDO, object_from_ipce
 from zuper_ipce.json2cbor import tag_hook
@@ -31,66 +32,166 @@ from duckietown_world.seqs.tsequence import SampledSequenceBuilder
 from duckietown_world.svg_drawing.draw_log import RobotTrajectories, SimulatorLog
 from duckietown_world.svg_drawing.misc import TimeseriesPlot
 from duckietown_world.world_duckietown import construct_map, DB18, Duckie
-from duckietown_world.world_duckietown.utils import (get_velocities_from_sequence, pose_from_friendly,
-                                                     timeseries_robot_velocity)
+from duckietown_world.world_duckietown.utils import (
+    get_velocities_from_sequence,
+    pose_from_friendly,
+    timeseries_robot_velocity,
+)
 from . import logger
+
+X = TypeVar("X")
 
 
 @dataclass
-class LogData:
-    objects: List[dict]
+class Ob:
+    start: int
+    length: int
+    ob: dict
 
 
-def log_summary(filename: str, measure_size: bool = True) -> LogData:
-    objects = []
-
+def sequence_cbor(filename: str) -> Iterator[Ob]:
     with open(filename, "rb") as f:
-        counts = defaultdict(lambda: 0)
-        sizes = defaultdict(lambda: 0)
 
         while True:
+            start = f.tell()
             try:
                 ob = cbor2.load(f, tag_hook=tag_hook)
             except CBORDecodeEOF:
                 break
+            length = f.tell() - start
+            assert isinstance(ob, dict)
+            yield Ob(start, length, ob)
 
-            # for ob in read_cbor_or_json_objects(f):
-            topic = ob["topic"]
-            if measure_size:
-                size_ob = len(cbor2.dumps(ob))
-            else:
-                size_ob = 0
-            counts[topic] += 1
-            sizes[topic] += size_ob
-            objects.append(ob)
+
+@dataclass
+class Ob0:
+    start: int
+    length: int
+
+
+class LogSupport:
+    topic_index: Optional[Dict[str, List[Ob0]]]
+
+    def __init__(self, filename: str):
+        self.filename = filename
+        self.num = None
+        self.topic_index = None
+
+    def make_index(self, prefix: str = "") -> Iterator[dict]:
+        i = 0
+        topic_index: Dict[str, List[Ob0]] = defaultdict(list)
+        with ProgressBar(prefix=prefix + " ", max_value=self.num) as bar:
+            for ob in sequence_cbor(self.filename):
+                bar.update(i)
+                topic = ob.ob["topic"]
+                topic_index[topic].append(Ob0(ob.start, ob.length))
+                yield ob.ob
+                i += 1
+        self.num = i
+        self.topic_index = dict(topic_index)
+
+    def get_topic(self, only_topic: str) -> Iterator[dict]:
+        if self.topic_index is None:
+            for _ in self.make_index("index"):
+                pass
+        assert self.topic_index is not None
+        if only_topic not in self.topic_index:
+            logger.debug(f"no messages for topic {only_topic!r}")
+            return
+        with open(self.filename, "rb") as f:
+            wheres = self.topic_index[only_topic]
+            with ProgressBar(prefix=only_topic + " ", max_value=len(wheres)) as bar:
+                for i, where in enumerate(wheres):
+                    bar.update(i)
+                    f.seek(where.start)
+                    ob = cbor2.load(f, tag_hook=tag_hook)
+                    length = f.tell() - where.start
+
+                    assert length == where.length
+                    yield ob
+        #
+        # for ob in self.get_raw(prefix=only_topic):
+        #     topic = ob["topic"]
+        #     if topic == only_topic:
+        #         yield ob
+
+    def get_topic_as(self, topic: str, K: Type[X]) -> Iterator[X]:
+        for ob in self.get_topic(topic):
+            data = ob["data"]
+            inter = object_from_ipce(data, K, iedo=iedo)
+            yield inter
+
+
+def log_stats(ls: LogSupport, measure_size: bool = True):
+    counts = defaultdict(lambda: 0)
+    sizes = defaultdict(lambda: 0)
+    for ob in ls.make_index():
+        assert isinstance(ob, dict), ob
+        # for ob in read_cbor_or_json_objects(f):
+        topic = ob["topic"]
+        if measure_size:
+            size_ob = len(cbor2.dumps(ob))
+        else:
+            size_ob = 0
+        counts[topic] += 1
+        sizes[topic] += size_ob
 
     ordered = sorted(counts, key=lambda x: sizes[x], reverse=True)
     for topic in ordered:
         count = counts[topic]
         size_mb = sizes[topic] / (1024 * 1024.0)
         logger.debug(f"topic {topic:>25}: {count:>4} messages  {size_mb:.2f} MB")
-    return LogData(objects)
 
 
-def read_topic2(ld: LogData, topic: str) -> Iterator[dict]:
-    for ob in ld.objects:
-        if ob["topic"] == topic:
-            yield ob
+#
+# def log_summary(filename: str, measure_size: bool = True) -> LogSupport:
+#     objects = []
+#
+#     with open(filename, "rb") as f:
+#         counts = defaultdict(lambda: 0)
+#         sizes = defaultdict(lambda: 0)
+#
+#         while True:
+#             try:
+#                 ob = cbor2.load(f, tag_hook=tag_hook)
+#             except CBORDecodeEOF:
+#                 break
+#
+#             # for ob in read_cbor_or_json_objects(f):
+#             topic = ob["topic"]
+#             if measure_size:
+#                 size_ob = len(cbor2.dumps(ob))
+#             else:
+#                 size_ob = 0
+#             counts[topic] += 1
+#             sizes[topic] += size_ob
+#             objects.append(ob)
+#
+#     ordered = sorted(counts, key=lambda x: sizes[x], reverse=True)
+#     for topic in ordered:
+#         count = counts[topic]
+#         size_mb = sizes[topic] / (1024 * 1024.0)
+#         logger.debug(f"topic {topic:>25}: {count:>4} messages  {size_mb:.2f} MB")
+#     return LogSupport(objects)
+# #
+#
+# def read_topic2(ld: LogSupport, topic: str) -> Iterator[dict]:
+#     for ob in ld.objects:
+#         if ob["topic"] == topic:
+#             yield ob
 
 
-X = TypeVar("X")
+#
+# def read_topic_as(ld: LogSupport, topic: str, K: Type[X]) -> Iterator[X]:
+#     for ob in ld.objects:
+#         if ob["topic"] == topic:
+#             data = ob["data"]
+#             inter = object_from_ipce(data, K, iedo=iedo)
+#             yield inter
 
 
-def read_topic_as(ld: LogData, topic: str, K: Type[X]) -> Iterator[X]:
-    for ob in ld.objects:
-        if ob["topic"] == topic:
-            data = ob["data"]
-            inter = object_from_ipce(data, K, iedo=iedo)
-            yield inter
-
-
-def read_map_info(ld: LogData) -> DuckietownMap:
-    m = list(read_topic2(ld, "set_map"))
+def read_map_info(ls: LogSupport) -> DuckietownMap:
+    m = list(ls.get_topic("set_map"))
     if not m:
         msg = "Could not find set_map"
         raise Exception(msg)
@@ -101,12 +202,12 @@ def read_map_info(ld: LogData) -> DuckietownMap:
     return duckietown_map
 
 
-def read_perfomance(ld: LogData) -> Dict[str, RuleEvaluationResult]:
+def read_perfomance(ld: LogSupport) -> Dict[str, RuleEvaluationResult]:
     sb = SampledSequenceBuilder[float]()
     sb.add(0, 0)
     sequences: Dict[str, SampledSequenceBuilder] = defaultdict(lambda: SampledSequenceBuilder[float]())
 
-    for i, ob in enumerate(read_topic2(ld, "timing_information")):
+    for i, ob in enumerate(ld.get_topic("timing_information")):
         # ob = ipce_to_object(ob['data'], {}, {})
         phases = ob["data"]["phases"]
         phases.pop("$schema", None)
@@ -123,8 +224,10 @@ def read_perfomance(ld: LogData) -> Dict[str, RuleEvaluationResult]:
     return {"performance": evr}
 
 
-def read_trajectories(ld: LogData) -> Dict[RobotName, RobotTrajectories]:
-    rs = list(read_topic2(ld, "robot_state"))
+def read_trajectories(
+    ld: LogSupport, robot_needs_observations: Optional[Set[str]] = None
+) -> Dict[RobotName, RobotTrajectories]:
+    rs = list(ld.get_topic("robot_state"))
     if not rs:
         msg = "Could not find robot_state"
         raise Exception(msg)
@@ -148,7 +251,15 @@ def read_trajectories(ld: LogData) -> Dict[RobotName, RobotTrajectories]:
             ssb_pose.add(t, SE2Transform.from_SE2(pose))
         ss_pose_SE2 = ssb_pose_SE2.as_sequence()
         seq_velocities = get_velocities_from_sequence(ss_pose_SE2)
-        observations = read_observations(ld, robot_name)
+        if robot_needs_observations is not None:
+            load_observations = robot_name in robot_needs_observations
+        else:
+            load_observations = True
+        if load_observations:
+            observations = read_observations(ld, robot_name)
+        else:
+            logger.debug(f"Skipping reading observations for {robot_name}, only {robot_needs_observations}")
+            observations = []
         commands = read_commands(ld, robot_name)
 
         robot2trajs[robot_name] = RobotTrajectories(
@@ -160,9 +271,9 @@ def read_trajectories(ld: LogData) -> Dict[RobotName, RobotTrajectories]:
     return robot2trajs
 
 
-def read_observations(ld: LogData, robot_name: str) -> SampledSequence:
+def read_observations(ld: LogSupport, robot_name: str) -> SampledSequence:
     ssb = SampledSequenceBuilder[bytes]()
-    obs = list(read_topic2(ld, "robot_observations"))
+    obs = list(ld.get_topic("robot_observations"))
     last_t = None
     for ob in obs:
         found = object_from_ipce(ob["data"], iedo=iedo)
@@ -185,9 +296,9 @@ def read_observations(ld: LogData, robot_name: str) -> SampledSequence:
 iedo = IEDO(use_remembered_classes=True, remember_deserialized_classes=True)
 
 
-def read_commands(ld: LogData, robot_name: str) -> SampledSequence:
+def read_commands(ld: LogSupport, robot_name: str) -> SampledSequence:
     ssb = SampledSequenceBuilder[SetRobotCommands]()
-    obs = list(read_topic2(ld, "set_robot_commands"))
+    obs = list(ld.get_topic("set_robot_commands"))
     last_t = None
     for ob in obs:
         found = object_from_ipce(ob["data"], iedo=iedo)
@@ -205,21 +316,26 @@ def read_commands(ld: LogData, robot_name: str) -> SampledSequence:
     return seq
 
 
-def read_simulator_log_cbor(ld: LogData, main_robot_name: Optional[str] = None) -> SimulatorLog:
-    robot_spawn: Dict[str, SpawnRobot] = {
-        v.robot_name: v for v in read_topic_as(ld, "spawn_robot", SpawnRobot)
-    }
-    duckie_spawn: Dict[str, SpawnDuckie] = {x.name: x for x in read_topic_as(ld, "spawn_duckie", SpawnDuckie)}
+def read_simulator_log_cbor(ld: LogSupport, main_robot_name: Optional[str] = None) -> SimulatorLog:
+    robot_spawn: Dict[str, SpawnRobot] = {v.robot_name: v for v in ld.get_topic_as("spawn_robot", SpawnRobot)}
+    duckie_spawn: Dict[str, SpawnDuckie] = {x.name: x for x in ld.get_topic_as("spawn_duckie", SpawnDuckie)}
     # logger.info(spawn=robot_spawn, duckie_spawn=duckie_spawn)
 
     render_time = read_perfomance(ld)
     duckietown_map = read_map_info(ld)
-    robots = read_trajectories(ld)
+    if main_robot_name is not None:
+        robot_needs_observations = {main_robot_name}
+    else:
+        robot_needs_observations = None
+    robots = read_trajectories(ld, robot_needs_observations=robot_needs_observations)
     # logger.info(f'robots: {len(robots)}')
 
     for duckie_name, ds in duckie_spawn.items():
         color = ds.color
-        pose: SE2value = pose_from_friendly(ds.pose)
+        if isinstance(ds.pose, np.ndarray):  # XXX: backward compatibility
+            pose = ds.pose
+        else:
+            pose: SE2value = pose_from_friendly(ds.pose)
         duckie = Duckie(color=color)
 
         pose2 = SE2Transform.from_SE2(pose)
@@ -238,7 +354,7 @@ def read_simulator_log_cbor(ld: LogData, main_robot_name: Optional[str] = None) 
 
 
 def evaluate_stats(fn: str, robot_main: str) -> Dict[str, RuleEvaluationResult]:
-    ld = log_summary(fn)
+    ld = LogSupport(fn)
     log0 = read_simulator_log_cbor(ld, main_robot_name=robot_main)
     log = log0.robots[robot_main]
     duckietown_env = log0.duckietown
@@ -253,7 +369,8 @@ def evaluate_stats(fn: str, robot_main: str) -> Dict[str, RuleEvaluationResult]:
 
 
 def read_and_draw(fn: str, output: str, robot_main: str) -> Dict[str, RuleEvaluationResult]:
-    ld = log_summary(fn)
+    ld = LogSupport(fn)
+    log_stats(ld)
 
     logger.info("Reading logs...")
     log0 = read_simulator_log_cbor(ld, main_robot_name=robot_main)

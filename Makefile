@@ -37,3 +37,13 @@ test-ego:
 
 test-draw:
 	aido-log-draw --gslog $(log) --robot ego --outdir out/test1
+
+#http://duckietown-ai-driving-olympics-1.s3.amazonaws.com/v3/staging/by-value/sha256/4893109f32127eca5000b63fd733ead30ff652d0b797633e120350b6be784636
+log_large=samples/large.gs2.cbor
+
+test-draw-large:
+	aido-log-draw --gslog $(log_large) --robot ego0 --outdir out/large
+
+
+test-ego-large:
+	aido-log-video --gslog $(log_large) --robot ego0 --out out/test-large.mp4 --banner $(banner) --banner-bottom $(banner)
