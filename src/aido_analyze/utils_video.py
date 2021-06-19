@@ -19,7 +19,7 @@ class CBORRead(Generator):
         fn = self.get_config("filename")
         robot_name = self.get_config("robot_name")
         self.ld = LogSupport(fn)
-        self.log: SimulatorLog = read_simulator_log_cbor(self.ld)
+        self.log: SimulatorLog = read_simulator_log_cbor(self.ld, main_robot_name=robot_name)
         self.i = 0
         if robot_name not in self.log.robots:
             msg = f"Cannot find robot {robot_name} among {list(self.log.robots)}"
