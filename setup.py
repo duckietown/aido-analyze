@@ -34,6 +34,9 @@ setup(
         "progressbar2",
         "procgraph-z6",
         f"duckietown-world-{line}",
+        "PyGeometry-z6",
+        "PyYAML",
+        "numpy",
     ],
     entry_points={
         "console_scripts": [
