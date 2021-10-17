@@ -43,7 +43,15 @@ jobs:
     - run:
         name: Install testing deps
         command: |
+          python3 -m pip install -U pip
           python3 -m pip install nose coverage pipdeptree rednose
+
+
+
+    - run:
+        name: install
+        command: |
+          python3 -m pip install -e ".[test]" --user
 
     - run:
         name: Python stats
@@ -55,12 +63,6 @@ jobs:
     - store_artifacts:
         path: build-stats
         destination: build-stats
-
-    - run:
-        name: install
-        command: |
-          python3 -m pip install -e . --user
-
 #    - run:
 #        name: Make docs
 #        command: |
@@ -170,7 +172,15 @@ jobs:
     - run:
         name: Install testing deps
         command: |
+          python3 -m pip install -U pip
           python3 -m pip install nose coverage pipdeptree rednose
+
+
+
+    - run:
+        name: install
+        command: |
+          python3 -m pip install -e ".[test]" --user
 
     - run:
         name: Python stats
@@ -182,12 +192,6 @@ jobs:
     - store_artifacts:
         path: build-stats
         destination: build-stats
-
-    - run:
-        name: install
-        command: |
-          python3 -m pip install -e . --user
-
 #    - run:
 #        name: Make docs
 #        command: |
@@ -271,4 +275,4 @@ jobs:
           bash <(curl -s https://codecov.io/bash)
     resource_class: medium
 
-# sigil f011092f96fb08dbc2baa0196090bf02
+# sigil 0910e3b6c3fdb8a3a585cbf5fe1b25f5

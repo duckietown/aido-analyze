@@ -3,6 +3,7 @@
     "PyGeometry-z6",
     "PyYAML",
     "aido-protocols-daffy",
+    "cbor2",
     "duckietown-world-daffy",
     "numpy",
     "procgraph-z6",
