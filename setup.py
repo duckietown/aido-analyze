@@ -37,6 +37,7 @@ setup(
         "PyGeometry-z6",
         "PyYAML",
         "numpy",
+        "cbor2",
     ],
     entry_points={
         "console_scripts": [
