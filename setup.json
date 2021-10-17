@@ -1,0 +1,28 @@
+{
+  "install_requires": [
+    "PyGeometry-z6",
+    "PyYAML",
+    "aido-protocols-daffy",
+    "duckietown-world-daffy",
+    "numpy",
+    "procgraph-z6",
+    "progressbar2",
+    "zuper-commons-z6",
+    "zuper-ipce-z6"
+  ],
+  "tests_require": [],
+  "srcdir": "src",
+  "package_name": "aido-analyze-daffy",
+  "entry_points": {
+    "console_scripts": []
+  },
+  "zip_safe": true,
+  "include_package_data": true,
+  "modules": [
+    "aido_analyze"
+  ],
+  "version": "6.1.3",
+  "author": "",
+  "author_email": "",
+  "url": ""
+}
