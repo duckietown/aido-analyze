@@ -56,7 +56,7 @@ jobs:
     - run:
         name: Python stats
         command: |
-          pipdeptree | tee  build-stats/pipdeptree.txt
+          env | sort | tee  build-stats/env.txt
           pip list   | sort | tee  build-stats/pip-list.txt
           pip freeze | sort | tee  build-stats/pip-freeze.txt
 
