@@ -56,7 +56,7 @@ jobs:
     - run:
         name: Python stats
         command: |
-          env | sort | tee  build-stats/env.txt
+          pipdeptree | tee  build-stats/pipdeptree.txt
           pip list   | sort | tee  build-stats/pip-list.txt
           pip freeze | sort | tee  build-stats/pip-freeze.txt
 
@@ -275,4 +275,4 @@ jobs:
           bash <(curl -s https://codecov.io/bash)
     resource_class: medium
 
-# sigil 0910e3b6c3fdb8a3a585cbf5fe1b25f5
+# sigil 734ee190664681dbf1a129bc3549987d
